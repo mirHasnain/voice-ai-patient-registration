@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CareCloud — Patient Registry</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e3e6ea;
+    --text: #1a1d21;
+    --muted: #697586;
+    --accent: #d64562;
+    --accent-soft: #fdeef1;
+    --ok: #17835a;
+    --ok-soft: #e6f4ee;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --panel: #1c2027; --border: #2b313a; --text: #e8eaed;
+      --muted: #98a2b3; --accent: #f2607d; --accent-soft: #33202a;
+      --ok: #4ade80; --ok-soft: #16251d;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 22px; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+          padding: 5px 11px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); }
+  .pill.bad { background: var(--accent-soft); color: var(--accent); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  .card .v { font-size: 25px; font-weight: 650; margin-top: 3px; letter-spacing: -.02em; }
+  .card .v small { font-size: 14px; font-weight: 500; color: var(--muted); }
+
+  .callbar { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+             padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 20px;
+             display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .callbar .label { font-weight: 600; }
+  .callbar .hint { color: var(--muted); font-size: 13px; }
+  .tel { font-size: 19px; font-weight: 650; letter-spacing: .02em; color: var(--accent); text-decoration: none; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 9px 15px;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary.live { background: #b3253f; border-color: #b3253f; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.danger { color: var(--accent); }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  input[type=search], input[type=text] {
+    font: inherit; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); min-width: 190px;
+  }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .panel h2 { font-size: 14px; margin: 0; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+       color: var(--muted); padding: 10px 18px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 12px 18px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--bg); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .name { font-weight: 600; }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+         background: var(--bg); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .tag.voice { background: var(--accent-soft); color: var(--accent); }
+  .empty { padding: 44px 18px; text-align: center; color: var(--muted); }
+
+  dialog {
+    border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--text);
+    padding: 0; max-width: 560px; width: calc(100% - 32px); box-shadow: 0 20px 40px rgba(0,0,0,.22);
+  }
+  dialog::backdrop { background: rgba(10, 12, 16, .5); }
+  .dhead { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .dhead h3 { margin: 0; font-size: 17px; }
+  .dbody { padding: 6px 20px 16px; max-height: 60vh; overflow-y: auto; }
+  .row { display: flex; justify-content: space-between; gap: 18px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { color: var(--muted); }
+  .row .v { text-align: right; word-break: break-word; }
+  .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); }
+  footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  code { background: var(--bg); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>CareCloud — Patient Registry</h1>
+      <p class="sub">Records created by the voice intake agent and the REST API.</p>
+    </div>
+    <span class="pill" id="status"><span class="dot"></span><span id="statusText">checking…</span></span>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="k">Patients</div><div class="v" id="mTotal">—</div></div>
+    <div class="card"><div class="k">By phone</div><div class="v" id="mVoice">—</div></div>
+    <div class="card"><div class="k">Calls logged</div><div class="v" id="mCalls">—</div></div>
+    <div class="card"><div class="k">Latest</div><div class="v" id="mLatest"><small>—</small></div></div>
+  </div>
+
+  <div class="callbar">
+    <span class="label">Talk to the agent</span>
+    <span id="telWrap" hidden>→ <a class="tel" id="tel" href="#">—</a></span>
+    <button class="primary" id="callBtn" hidden>🎙️ Start web call</button>
+    <span class="hint" id="callHint">Call the number above to register a patient.</span>
+  </div>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Filter by last name…" />
+    <input type="text" id="qPhone" placeholder="Phone number…" />
+    <button id="refresh">Refresh</button>
+  </div>
+
+  <div class="panel">
+    <h2>Patients</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>Name</th><th>DOB</th><th>Sex</th><th>Phone</th><th>City</th>
+          <th>State</th><th>Language</th><th>Source</th><th>Registered</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" hidden>No patients yet. Call the agent to create one.</div>
+  </div>
+
+  <footer>
+    REST API: <code>GET /patients</code> · <code>POST /patients</code> ·
+    <code>PUT /patients/:id</code> · <code>DELETE /patients/:id</code> ·
+    <code>GET /health</code>
+  </footer>
+</div>
+
+<dialog id="detail">
+  <div class="dhead"><h3 id="dTitle">Patient</h3><button id="dClose">Close</button></div>
+  <div class="dbody" id="dBody"></div>
+  <div class="dfoot">
+    <button class="danger" id="dDelete">Delete record</button>
+  </div>
+</dialog>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const state = { patients: [], current: null, config: {}, vapi: null, live: false };
+
+const FIELDS = [
+  ['patient_id', 'Patient ID'], ['first_name', 'First name'], ['last_name', 'Last name'],
+  ['date_of_birth', 'Date of birth'], ['sex', 'Sex'], ['phone_number', 'Phone'],
+  ['email', 'Email'], ['address_line_1', 'Address'], ['address_line_2', 'Address 2'],
+  ['city', 'City'], ['state', 'State'], ['zip_code', 'ZIP'],
+  ['insurance_provider', 'Insurance'], ['insurance_member_id', 'Member ID'],
+  ['preferred_language', 'Language'], ['emergency_contact_name', 'Emergency contact'],
+  ['emergency_contact_phone', 'Emergency phone'], ['source', 'Source'],
+  ['created_at', 'Created'], ['updated_at', 'Updated'],
+];
+
+const fmtPhone = (p) => (p && p.length === 10 ? `(${p.slice(0,3)}) ${p.slice(3,6)}-${p.slice(6)}` : (p || '—'));
+const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString(undefined,
+  { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error?.message || `HTTP ${res.status}`);
+  return body.data;
+}
+
+async function loadHealth() {
+  try {
+    const d = await api('/health');
+    $('status').className = 'pill';
+    $('statusText').textContent = `API online · ${d.patients} records`;
+  } catch {
+    $('status').className = 'pill bad';
+    $('statusText').textContent = 'API unreachable';
+  }
+}
+
+async function loadPatients() {
+  const params = new URLSearchParams();
+  if ($('q').value.trim()) params.set('last_name', $('q').value.trim());
+  if ($('qPhone').value.trim()) params.set('phone_number', $('qPhone').value.trim());
+
+  let data;
+  try {
+    data = await api('/patients' + (params.toString() ? `?${params}` : ''));
+  } catch (err) {
+    // A bad filter (e.g. half-typed phone number) is a 400, not a crash.
+    $('rows').innerHTML = '';
+    $('empty').hidden = false;
+    $('empty').textContent = err.message;
+    return;
+  }
+
+  state.patients = data.patients;
+  render();
+}
+
+function render() {
+  const rows = $('rows');
+  rows.innerHTML = '';
+  $('empty').hidden = state.patients.length > 0;
+  $('empty').textContent = 'No patients match. Call the agent to create one.';
+
+  for (const p of state.patients) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="name">${esc(p.first_name)} ${esc(p.last_name)}</td>
+      <td>${esc(p.date_of_birth)}</td>
+      <td>${esc(p.sex)}</td>
+      <td>${fmtPhone(p.phone_number)}</td>
+      <td>${esc(p.city)}</td>
+      <td>${esc(p.state)}</td>
+      <td>${esc(p.preferred_language || '—')}</td>
+      <td><span class="tag ${p.source === 'voice' ? 'voice' : ''}">${esc(p.source)}</span></td>
+      <td>${fmtDate(p.created_at)}</td>`;
+    tr.onclick = () => openDetail(p);
+    rows.appendChild(tr);
+  }
+
+  $('mTotal').textContent = state.patients.length;
+  $('mVoice').textContent = state.patients.filter((p) => p.source === 'voice').length;
+  const latest = state.patients[0];
+  $('mLatest').innerHTML = latest
+    ? `<small>${esc(latest.first_name)} ${esc(latest.last_name)}<br>${fmtDate(latest.created_at)}</small>`
+    : '<small>—</small>';
+}
+
+function esc(s) {
+  return String(s ?? '—').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function openDetail(p) {
+  state.current = p;
+  $('dTitle').textContent = `${p.first_name} ${p.last_name}`;
+  $('dBody').innerHTML = FIELDS.map(([k, label]) => {
+    let v = p[k];
+    if (k === 'phone_number' || k === 'emergency_contact_phone') v = v ? fmtPhone(v) : null;
+    if (k === 'created_at' || k === 'updated_at') v = fmtDate(v);
+    return `<div class="row"><span class="k">${label}</span><span class="v">${esc(v)}</span></div>`;
+  }).join('');
+  $('detail').showModal();
+}
+
+$('dClose').onclick = () => $('detail').close();
+$('dDelete').onclick = async () => {
+  if (!state.current) return;
+  if (!confirm(`Soft-delete the record for ${state.current.first_name} ${state.current.last_name}?`)) return;
+  await api(`/patients/${state.current.patient_id}`, { method: 'DELETE' });
+  $('detail').close();
+  await Promise.all([loadPatients(), loadCalls(), loadHealth()]);
+};
+
+async function loadCalls() {
+  try {
+    const calls = await api('/calls');
+    $('mCalls').textContent = calls.length;
+  } catch { $('mCalls').textContent = '—'; }
+}
+
+/* -- Web call: lets a reviewer talk to the same assistant from the browser,
+      which also covers the case where telephony is unavailable. ------------ */
+async function initCalling() {
+  try {
+    state.config = await api('/config');
+  } catch { return; }
+
+  if (state.config.phone_number) {
+    $('telWrap').hidden = false;
+    $('tel').textContent = state.config.phone_number;
+    $('tel').href = `tel:${state.config.phone_number.replace(/[^+\d]/g, '')}`;
+  }
+
+  if (!state.config.vapi_public_key || !state.config.vapi_assistant_id) {
+    $('callHint').textContent = state.config.phone_number
+      ? 'Call the number to register a patient.'
+      : 'Set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID to enable in-browser calling.';
+    return;
+  }
+
+  let Vapi;
+  try {
+    ({ default: Vapi } = await import('https://esm.sh/@vapi-ai/web@2'));
+  } catch {
+    $('callHint').textContent = 'Web calling unavailable (SDK failed to load). Please use the phone number.';
+    return;
+  }
+
+  state.vapi = new Vapi(state.config.vapi_public_key);
+  $('callBtn').hidden = false;
+  $('callHint').textContent = 'Or click to speak to the agent from your browser (microphone required).';
+
+  state.vapi.on('call-start', () => {
+    state.live = true;
+    $('callBtn').textContent = '⏹ End call';
+    $('callBtn').classList.add('live');
+    $('callHint').textContent = 'Connected — start speaking.';
+  });
+  state.vapi.on('call-end', async () => {
+    state.live = false;
+    $('callBtn').textContent = '🎙️ Start web call';
+    $('callBtn').classList.remove('live');
+    $('callHint').textContent = 'Call ended. Refreshing records…';
+    setTimeout(() => Promise.all([loadPatients(), loadCalls(), loadHealth()]), 2500);
+  });
+  state.vapi.on('error', (e) => {
+    $('callHint').textContent = `Call error: ${e?.message || 'unknown'}. Try the phone number instead.`;
+  });
+
+  $('callBtn').onclick = () => {
+    if (state.live) state.vapi.stop();
+    else {
+      $('callHint').textContent = 'Connecting…';
+      state.vapi.start(state.config.vapi_assistant_id);
+    }
+  };
+}
+
+let debounce;
+const onFilter = () => { clearTimeout(debounce); debounce = setTimeout(loadPatients, 300); };
+$('q').oninput = onFilter;
+$('qPhone').oninput = onFilter;
+$('refresh').onclick = () => Promise.all([loadPatients(), loadCalls(), loadHealth()]);
+
+await Promise.all([loadHealth(), loadPatients(), loadCalls(), initCalling()]);
+setInterval(() => { if (!state.live) Promise.all([loadPatients(), loadCalls(), loadHealth()]); }, 20000);
+</script>
+</body>
+</html>

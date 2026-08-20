@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets - never commit. .env.example is the tracked template.
+.env
+.env.local
+!.env.example
+
+# Vercel CLI local state
+.vercel
+
+*.log
+.DS_Store
+
+# Assessment brief - confidential, not for a public repo
+*.pdf

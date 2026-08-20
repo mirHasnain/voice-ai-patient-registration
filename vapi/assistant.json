@@ -1,0 +1,141 @@
+{
+  "_comment": [
+    "Vapi assistant definition, kept in the repo so the voice agent is",
+    "config-as-code rather than a set of dashboard clicks nobody can review.",
+    "",
+    "Placeholders {{SYSTEM_PROMPT}}, {{SERVER_URL}} and {{SERVER_SECRET}} are",
+    "substituted by scripts/vapi_setup.py from app/prompts/agent.md and .env.",
+    "Run `python scripts/vapi_setup.py` to create or update the assistant."
+  ],
+
+  "name": "CareCloud Patient Intake (Riley)",
+
+  "firstMessage": "Thanks for calling CareCloud Family Health, this is Riley. Am I speaking with someone who needs to register as a new patient?",
+  "firstMessageMode": "assistant-speaks-first",
+
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "en",
+    "smartFormat": true
+  },
+
+  "voice": {
+    "provider": "vapi",
+    "voiceId": "Elliot"
+  },
+
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "temperature": 0.3,
+    "messages": [{ "role": "system", "content": "{{SYSTEM_PROMPT}}" }],
+    "tools": [
+      {
+        "type": "function",
+        "async": false,
+        "server": { "url": "{{SERVER_URL}}", "secret": "{{SERVER_SECRET}}" },
+        "function": {
+          "name": "lookup_patient",
+          "description": "Check whether a patient record already exists for a phone number. Call this once, immediately after the caller first responds, to detect returning patients. Leave phone_number empty to use the number the caller is dialling from.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "phone_number": {
+                "type": "string",
+                "description": "10-digit US phone number. Omit to use the caller ID."
+              }
+            },
+            "required": []
+          }
+        }
+      },
+      {
+        "type": "function",
+        "async": false,
+        "server": { "url": "{{SERVER_URL}}", "secret": "{{SERVER_SECRET}}" },
+        "function": {
+          "name": "save_patient",
+          "description": "Create the patient record. Call this ONLY after you have read all collected information back to the caller and they have confirmed it is correct. Send every value the caller gave you, including optional ones.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "first_name": { "type": "string", "description": "Given name as spoken or spelled by the caller." },
+              "last_name": { "type": "string", "description": "Family name as spoken or spelled by the caller." },
+              "date_of_birth": { "type": "string", "description": "Date of birth in MM/DD/YYYY format." },
+              "sex": { "type": "string", "enum": ["Male", "Female", "Other", "Decline to Answer"] },
+              "phone_number": { "type": "string", "description": "10-digit US phone number, digits only." },
+              "address_line_1": { "type": "string", "description": "Street address including house number." },
+              "address_line_2": { "type": "string", "description": "Apartment, suite or unit. Omit if none." },
+              "city": { "type": "string" },
+              "state": { "type": "string", "description": "US state - full name or two-letter abbreviation." },
+              "zip_code": { "type": "string", "description": "5-digit ZIP or ZIP+4." },
+              "email": { "type": "string", "description": "Email address. Optional." },
+              "insurance_provider": { "type": "string", "description": "Insurance company name. Optional." },
+              "insurance_member_id": { "type": "string", "description": "Member or subscriber ID. Optional." },
+              "preferred_language": { "type": "string", "description": "Defaults to English. Optional." },
+              "emergency_contact_name": { "type": "string", "description": "Optional." },
+              "emergency_contact_phone": { "type": "string", "description": "10-digit US phone number. Optional." }
+            },
+            "required": [
+              "first_name", "last_name", "date_of_birth", "sex",
+              "phone_number", "address_line_1", "city", "state", "zip_code"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "async": false,
+        "server": { "url": "{{SERVER_URL}}", "secret": "{{SERVER_SECRET}}" },
+        "function": {
+          "name": "update_patient",
+          "description": "Update an existing patient record. Use the patient_id returned by lookup_patient, and send only the fields the caller asked to change.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patient_id": { "type": "string", "description": "UUID returned by lookup_patient." },
+              "first_name": { "type": "string" },
+              "last_name": { "type": "string" },
+              "date_of_birth": { "type": "string", "description": "MM/DD/YYYY" },
+              "sex": { "type": "string", "enum": ["Male", "Female", "Other", "Decline to Answer"] },
+              "phone_number": { "type": "string" },
+              "address_line_1": { "type": "string" },
+              "address_line_2": { "type": "string" },
+              "city": { "type": "string" },
+              "state": { "type": "string" },
+              "zip_code": { "type": "string" },
+              "email": { "type": "string" },
+              "insurance_provider": { "type": "string" },
+              "insurance_member_id": { "type": "string" },
+              "preferred_language": { "type": "string" },
+              "emergency_contact_name": { "type": "string" },
+              "emergency_contact_phone": { "type": "string" }
+            },
+            "required": ["patient_id"]
+          }
+        }
+      }
+    ]
+  },
+
+  "server": { "url": "{{SERVER_URL}}", "secret": "{{SERVER_SECRET}}" },
+  "serverMessages": ["tool-calls", "end-of-call-report"],
+
+  "endCallFunctionEnabled": true,
+  "endCallMessage": "You're all set. Thanks for calling CareCloud, take care.",
+
+  "silenceTimeoutSeconds": 30,
+  "maxDurationSeconds": 600,
+  "backgroundSound": "off",
+
+  "startSpeakingPlan": {
+    "waitSeconds": 0.4,
+    "smartEndpointingEnabled": true
+  },
+  "stopSpeakingPlan": {
+    "numWords": 2,
+    "voiceSeconds": 0.2,
+    "backoffSeconds": 1
+  }
+}
